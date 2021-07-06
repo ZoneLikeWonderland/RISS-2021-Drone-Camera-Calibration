@@ -3,24 +3,17 @@ import glob
 import cv2
 import numpy as np
 
-
-# WIDTH = 320
-# HEIGHT = 240
-WIDTH = 160 * 4
-HEIGHT = 160 * 3
-
-x_base, y_base = np.meshgrid(range(WIDTH), range(HEIGHT))
-
-LEN = max(WIDTH, HEIGHT)
-
-fade_dist = (((x_base - WIDTH / 2) / LEN)**2 + ((y_base - HEIGHT / 2) / LEN)**2)**0.5
+x_base, y_base = np.meshgrid(range(320), range(240))
+fade_dist = ((x_base - 320 // 2)**2 + (y_base - 240 // 2)**2)**0.5
+# fade = 1 / (1 + (fade_dist / (320 // 2)))
+# fade = 1 - (fade_dist / (320 // 2) / 1.5)**2
 
 
 class CardSet(torch.utils.data.Dataset):
     def __init__(self):
         super().__init__()
 
-        self.foreground_paths = glob.glob("dataclip/card/*.jpg") + glob.glob("dataclip/card/*.png")
+        self.foreground_paths = glob.glob("dataclip/card/*.jpg")
         # self.background_paths = glob.glob("dataclip/images/*.jpg")
         self.background_paths = glob.glob(r"E:\RISS\dataclip\challenge2018.tar\challenge2018/*.jpg")
 
@@ -29,7 +22,7 @@ class CardSet(torch.utils.data.Dataset):
         background_index = index % len(self.background_paths)
 
         foreground = cv2.imread(self.foreground_paths[foreground_index]).astype(np.float32) / 255
-        # foreground *= np.random.beta(10, 1, 3) * 1.1
+        foreground *= np.random.beta(10, 1, 3) * 1.1
         foreground += np.random.beta(1, 5, 3) - 0.1
         foreground_mask = np.ones((foreground.shape[0], foreground.shape[1]), dtype=np.float32)
         foreground_point = np.zeros((foreground.shape[0], foreground.shape[1]), dtype=np.float32)
@@ -55,8 +48,6 @@ class CardSet(torch.utils.data.Dataset):
             )
         )
 
-        # foreground_mask
-
         # foreground_point = np.pad(
         #     foreground_point,
         #     (
@@ -68,12 +59,10 @@ class CardSet(torch.utils.data.Dataset):
         # )
 
         background = cv2.imread(self.background_paths[background_index]).astype(np.float32) / 255
-        # background *= np.random.beta(10, 1, 3)
-        background = cv2.resize(background, (WIDTH, HEIGHT))
+        background *= np.random.beta(10, 1, 3)
+        background = cv2.resize(background, (320, 240))
         if np.random.random() > 0.5:
             background = background[:, ::-1]
-        if np.random.random() > 0.5:
-            background = background[::-1]
 
         src_points = np.array([
             [0, 0],
@@ -82,10 +71,7 @@ class CardSet(torch.utils.data.Dataset):
             [0, foreground.shape[0] - 1],
         ])
 
-        # r = (np.random.random() + 0.1) * max(background.shape) * 0.2
-        low = 0.05
-        high = 0.2
-        r = (np.random.random() * (high - low) + low) * max(background.shape)
+        r = (np.random.random() + 0.2) * max(background.shape) * 0.2
         dst_center = np.random.random(2) * [background.shape[1] - r * 2, background.shape[0] - r * 2] + r
 
         start_theta = np.random.random() * 2 * np.pi
@@ -135,16 +121,12 @@ class CardSet(torch.utils.data.Dataset):
         # print("good")
         # foreground_point = cv2.warpPerspective(foreground_point, H, background.shape[1::-1])
         foreground = cv2.warpPerspective(foreground, H, background.shape[1::-1])
-        if np.random.random() > 0.5:
-            ksize = np.random.randint(0, 4) * 2 + 1
-            foreground = cv2.GaussianBlur(foreground, (ksize, ksize), 0)
-        # ksize = 5
-        ksize = 11
+        ksize = np.random.randint(0, 4) * 2 + 1
+        foreground = cv2.GaussianBlur(foreground, (ksize, ksize), 0)
+        ksize = 5
         foreground_mask = cv2.GaussianBlur(foreground_mask, (ksize, ksize), 0)
-        ksize = ksize * 2 + 1
-        foreground_point = cv2.GaussianBlur(foreground_point, (ksize, ksize), 0)
-        # / 0.040226486
-        foreground_point /= foreground_point.max()
+        ksize = 11
+        foreground_point = cv2.GaussianBlur(foreground_point, (ksize, ksize), 0) / 0.040226486
         # print(foreground_point.max())
         # foreground_point /= (1 / (2 * np.pi)**0.5 / ksize * 2)
         # print(foreground_point.max())
@@ -153,8 +135,7 @@ class CardSet(torch.utils.data.Dataset):
         background *= np.random.beta(1, 1, 3) * 1.2
         background *= np.random.random(background.shape) * 0.02 + 0.99
 
-        # cv2.imshow("fade_dist", (fade_dist * 3 / (np.random.random() + 1.5))**(np.random.random() + 1.5))
-        fade = 1 - (fade_dist * 2.5 / (np.random.random() + 1.5))**(np.random.random() + 1.5)
+        fade = 1 - (fade_dist / (320 // 2) / (np.random.random() + 1.5))**(np.random.random() + 1.5)
         background *= fade[..., None] * 1.2
         background = np.minimum(background, 1)
         # return foreground_mask, background
