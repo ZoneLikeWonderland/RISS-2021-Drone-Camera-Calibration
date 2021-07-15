@@ -143,7 +143,8 @@ def train(net, lr=0.001, epochs=1000, batch_size=8, comment=""):
 
 
 if __name__ == "__main__":
-    net = UNet(3, 2, base=20)
-    net = torch.load(r"E:\RISS\runs\Jul06_13-06-00_DESKTOP-HN2581Fwithtest20\best_test_error.pth")
-    comment = "withtest20"
+    net = UNet(3, 2, base=20, bilinear="nearest")
+    net.load_state_dict(torch.load(r"E:\RISS\runs\Jul15_13-50-01_DESKTOP-HN2581Fback\best_test_error.pth").state_dict())
+    # net = torch.load(r"E:\RISS\runs\Jul15_13-50-01_DESKTOP-HN2581Fback\best_test_error.pth")
+    comment = "nearest"
     train(net, comment=comment)
