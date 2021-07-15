@@ -23,6 +23,7 @@ class CardSet(torch.utils.data.Dataset):
         self.foreground_paths = glob.glob("dataclip/card/*.jpg") + glob.glob("dataclip/card/*.png")
         # self.background_paths = glob.glob("dataclip/images/*.jpg")
         self.background_paths = glob.glob(r"E:\RISS\dataclip\challenge2018.tar\challenge2018/*.jpg")
+        self.background_paths += glob.glob(r"E:\RISS\test_images_bg/*.jpg") + glob.glob(r"E:\RISS\test_images_bg/*.png")
 
     def __getitem__(self, index):
         foreground_index = index // len(self.background_paths)
@@ -30,7 +31,16 @@ class CardSet(torch.utils.data.Dataset):
 
         foreground = cv2.imread(self.foreground_paths[foreground_index]).astype(np.float32) / 255
         # foreground *= np.random.beta(10, 1, 3) * 1.1
-        foreground += np.random.beta(1, 5, 3) - 0.1
+        # foreground += np.random.beta(1, 5, 3) - 0.1
+        foreground += (np.random.random(3) - 0.5) * 0.1
+        foreground += (np.random.random() - 0.5) * 0.3
+        foreground = foreground.clip(0, None)
+        foreground **= (np.random.normal(size=3, scale=0.1) + 1).clip(0.1, None)
+        foreground = foreground.clip(0, None)
+        foreground **= max(np.random.normal(scale=0.5) + 1.2, 0.1)
+        foreground = foreground.clip(0, None)
+        foreground *= (np.random.normal(size=3, scale=0.1) + 1).clip(0.1, None)
+        foreground = foreground.clip(0, None)
         foreground_mask = np.ones((foreground.shape[0], foreground.shape[1]), dtype=np.float32)
         foreground_point = np.zeros((foreground.shape[0], foreground.shape[1]), dtype=np.float32)
 
@@ -54,18 +64,6 @@ class CardSet(torch.utils.data.Dataset):
                  max(foreground_mask.shape) - foreground_mask.shape[1] - (max(foreground_mask.shape) - foreground_mask.shape[1]) // 2),
             )
         )
-
-        # foreground_mask
-
-        # foreground_point = np.pad(
-        #     foreground_point,
-        #     (
-        #         ((max(foreground_point.shape) - foreground_point.shape[0]) // 2,
-        #          max(foreground_point.shape) - foreground_point.shape[0] - (max(foreground_point.shape) - foreground_point.shape[0]) // 2),
-        #         ((max(foreground_point.shape) - foreground_point.shape[1]) // 2,
-        #          max(foreground_point.shape) - foreground_point.shape[1] - (max(foreground_point.shape) - foreground_point.shape[1]) // 2),
-        #     )
-        # )
 
         background = cv2.imread(self.background_paths[background_index]).astype(np.float32) / 255
         # background *= np.random.beta(10, 1, 3)
@@ -132,16 +130,16 @@ class CardSet(torch.utils.data.Dataset):
         foreground_point[int(p1[1, 1]), int(p1[0, 1])] = 1
         foreground_point[int(p1[1, 2]), int(p1[0, 2])] = 1
         foreground_point[int(p1[1, 3]), int(p1[0, 3])] = 1
-        # print("good")
-        # foreground_point = cv2.warpPerspective(foreground_point, H, background.shape[1::-1])
+
         foreground = cv2.warpPerspective(foreground, H, background.shape[1::-1])
+        foreground += np.random.normal(size=foreground.shape, scale=0.05)
         if np.random.random() > 0.5:
             ksize = np.random.randint(0, 4) * 2 + 1
             foreground = cv2.GaussianBlur(foreground, (ksize, ksize), 0)
         # ksize = 5
-        ksize = 11
+        ksize = np.random.randint(1, 3) * 2 + 1
         foreground_mask = cv2.GaussianBlur(foreground_mask, (ksize, ksize), 0)
-        ksize = ksize * 2 + 1
+        ksize = 23
         foreground_point = cv2.GaussianBlur(foreground_point, (ksize, ksize), 0)
         # / 0.040226486
         foreground_point /= foreground_point.max()
@@ -156,7 +154,7 @@ class CardSet(torch.utils.data.Dataset):
         # cv2.imshow("fade_dist", (fade_dist * 3 / (np.random.random() + 1.5))**(np.random.random() + 1.5))
         fade = 1 - (fade_dist * 2.5 / (np.random.random() + 1.5))**(np.random.random() + 1.5)
         background *= fade[..., None] * 1.2
-        background = np.minimum(background, 1)
+        background = background.clip(0, 1)
         # return foreground_mask, background
         return foreground_mask[None], background.transpose(2, 0, 1), foreground_point[None]
 
