@@ -1,7 +1,10 @@
 import torch
-net = torch.load("best_test_error.pth", "cpu")
+import sys
+sys.path.append("..")
 
-image = torch.randn(1, 3,  480, 640)
+net = torch.load(r"E:\RISS\runs\Jul15_13-50-01_DESKTOP-HN2581Fback\best_test_error.pth", "cpu")
+
+image = torch.randn(1, 3, 480, 640)
 
 result = net(image)
 

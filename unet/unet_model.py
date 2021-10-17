@@ -6,7 +6,7 @@ from .unet_parts import *
 
 
 class UNet(nn.Module):
-    def __init__(self, n_channels, n_classes, bilinear=True):
+    def __init__(self, n_channels, n_classes, bilinear=True, base=20):
         super(UNet, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
@@ -17,7 +17,7 @@ class UNet(nn.Module):
         # base = 32  # ?
         # base = 24  # ok
         # base = 16  # not good
-        base = 20
+        # base = 20
 
         self.inc = DoubleConv(n_channels, base)
         self.down1 = Down(base, base * 2)
